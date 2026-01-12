@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Admin</title></head>
+<body>
+<h3>Users</h3><pre id="u"></pre>
+<h3>Payments</h3><pre id="p"></pre>
+<script>
+const t=localStorage.getItem("admin");
+if(!t) location.href="/admin.html";
+
+fetch("/api/admin-users",{headers:{"x-admin-token":t}})
+.then(r=>r.json()).then(d=>u.textContent=JSON.stringify(d,null,2));
+
+fetch("/api/admin-payments",{headers:{"x-admin-token":t}})
+.then(r=>r.json()).then(d=>p.textContent=JSON.stringify(d,null,2));
+</script>
+</body>
+</html>

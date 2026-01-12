@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dev WITE | Tool Đa năng pro</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#0b0f14;
+  color:#fff;
+}
+.container{
+  max-width:420px;
+  margin:30px auto;
+  padding:16px;
+}
+.card{
+  background:#111827;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:16px;
+}
+h2{margin-top:0}
+input,button{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+  margin-top:10px;
+  font-size:15px;
+}
+input{background:#020617;color:#fff}
+button{
+  background:#22c55e;
+  color:#000;
+  font-weight:700;
+  cursor:pointer;
+}
+button.secondary{background:#1f2937;color:#fff}
+button.blue{background:#3b82f6;color:#fff}
+button.red{background:#ef4444;color:#fff}
+.hide{display:none}
+.status{
+  padding:10px;
+  border-radius:10px;
+  background:#020617;
+  margin-bottom:10px;
+  text-align:center;
+}
+.tg{
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  width:56px;
+  height:56px;
+  background:#2AABEE;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:900;
+  text-decoration:none;
+  font-size:18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- AUTH -->
+<div class="card" id="authBox">
+  <h2>Đăng nhập / Đăng ký</h2>
+  <input id="phone" placeholder="Số điện thoại">
+  <input id="password" type="password" placeholder="Mật khẩu">
+  <button onclick="login()">ĐĂNG NHẬP</button>
+  <button class="secondary" onclick="register()">ĐĂNG KÝ</button>
+  <div id="authMsg" class="status"></div>
+</div>
+
+<!-- TOOL -->
+<div class="card hide" id="toolBox">
+  <h2>CHANGE PASS TOOL</h2>
+
+  <div id="userStatus" class="status"></div>
+
+  <input id="uid" placeholder="Nhập UID">
+  <input id="code" placeholder="Nhập CODE MAIL">
+
+  <button class="blue" onclick="changePass(1)">🔐 Ver1</button>
+  <button class="blue" onclick="changePass(2)">🔐 Ver2</button>
+  <button class="blue" onclick="changePass(3)">🔐 Ver3</button>
+</div>
+
+</div>
+
+<!-- TELEGRAM -->
+<a class="tg" href="https://t.me/wite_dev" target="_blank">TG</a>
+
+<script>
+const CHANGE_PASS_LINKS = {
+  1: "https://www.facebook.com/recover/password/?u=UUUU&n=UUUU&fl=default_recover&sih=0&ssb=1&msgr=0&rm=send_email",
+  2: "https://www.facebook.com/recover/password/?u=UUUU&n=UUUU&fl=in_autosend_experiment&sih=0&ssb=1&msgr=0&rm=send_email",
+  3: "https://www.facebook.com/recover/password/?u=UUUU&n=UUUU&fl=default_recover&sih=0&ssb=1&msgr=0&rm=send_email&_rdc=1&_rdr#"
+};
+
+let userActive = false;
+
+/* REGISTER */
+async function register(){
+  authMsg.innerText="Đang đăng ký...";
+  const r = await fetch("/api/user-register",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      phone:phone.value.trim(),
+      password:password.value
+    })
+  });
+  const j = await r.json();
+  authMsg.innerText = j.ok ? "Đăng ký thành công – hãy đăng nhập" : j.error;
+}
+
+/* LOGIN */
+async function login(){
+  authMsg.innerText="Đang đăng nhập...";
+  const r = await fetch("/api/user-login",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      phone:phone.value.trim(),
+      password:password.value
+    })
+  });
+  const j = await r.json();
+  if(!j.ok){
+    authMsg.innerText=j.error;
+    return;
+  }
+  loadUser();
+}
+
+/* LOAD USER */
+async function loadUser(){
+  authBox.classList.add("hide");
+  toolBox.classList.remove("hide");
+
+  const r = await fetch(`/api/get-user?phone=${phone.value.trim()}`);
+  const u = await r.json();
+
+  if(!u){
+    userActive=false;
+    userStatus.innerText="❌ Số điện thoại này chưa được kích hoạt";
+    return;
+  }
+
+  if(u.is_lifetime){
+    userActive=true;
+    userStatus.innerText="⭐ Tài khoản vĩnh viễn";
+    return;
+  }
+
+  const days = Math.ceil((new Date(u.expire_date)-new Date())/86400000);
+  if(days<=0){
+    userActive=false;
+    userStatus.innerText="❌ Tài khoản đã hết hạn";
+  }else{
+    userActive=true;
+    userStatus.innerText="🟢 Còn "+days+" ngày sử dụng";
+  }
+}
+
+/* CHANGE PASS */
+function changePass(ver){
+  if(!userActive){
+    alert("Số điện thoại này chưa được kích hoạt");
+    return;
+  }
+  const u = uid.value.trim();
+  const c = code.value.trim();
+  if(!u || !c){
+    alert("Vui lòng nhập UID và CODE MAIL");
+    return;
+  }
+  const link = CHANGE_PASS_LINKS[ver]
+    .replace("UUUU", encodeURIComponent(u))
+    .replace("UUUU", encodeURIComponent(c));
+  window.open(link,"_blank");
+}
+</script>
+
+</body>
+</html>
